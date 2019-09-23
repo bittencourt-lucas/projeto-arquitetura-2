@@ -1,0 +1,120 @@
+#include <iostream>
+#include <atomic>
+#include <chrono>
+#include <ratio>
+#include <fstream>
+#include <omp.h>
+
+#define MATRIX_SIZE 513
+
+void prodMatrix(int mat1[][MATRIX_SIZE], int mat2[][MATRIX_SIZE], int count, int bsize) {
+    int i, j, k, jj, kk;
+    int sum;
+    int en = bsize * (count / bsize);
+
+	for (jj = 0; jj < en; jj += bsize) {
+		for (kk = 0; kk < en; kk += bsize) {
+			#pragma omp parallel sections
+			{
+			#pragma omp section
+			{
+			for (i = 0; i < 128; i++) {
+				for (j = jj; j < jj + bsize; j++) {
+					sum = 0;
+					for (k = kk; k < kk + bsize; k++) {
+						sum += (mat1[i][k] * mat2[k][j]);
+					}
+				//std::cerr << sum << " ";
+				}
+			}
+			}
+			#pragma omp section
+			{
+			for (i = 128; i < 256; i++) {
+				for (j = jj; j < jj + bsize; j++) {
+					sum = 0;
+					for (k = kk; k < kk + bsize; k++) {
+						sum += (mat1[i][k] * mat2[k][j]);
+					}
+				//std::cerr << sum << " ";
+				}
+			}
+			}
+			#pragma omp section
+			{
+			for (i = 256; i < 384; i++) {
+				for (j = jj; j < jj + bsize; j++) {
+					sum = 0;
+					for (k = kk; k < kk + bsize; k++) {
+						sum += (mat1[i][k] * mat2[k][j]);
+					}
+				//std::cerr << sum << " ";
+				}
+			}
+			}
+			#pragma omp section
+			{
+			for (i = 384; i < 512; i++) {
+				for (j = jj; j < jj + bsize; j++) {
+					sum = 0;
+					for (k = kk; k < kk + bsize; k++) {
+						sum += (mat1[i][k] * mat2[k][j]);
+					}
+				//std::cerr << sum << " ";
+				}
+			}
+			}
+			}
+		}
+	}
+}
+
+int main()
+{
+	/**********************************
+	// TEST MATRIX: 2x2 sized matrices
+	int A[][MATRIX_SIZE] = { {1, 2},
+							 {3, 4} };
+
+	int B[][MATRIX_SIZE] = { {-1, 3},
+						     {4, 2} };
+	**********************************/
+
+	// N sized matrices
+    int A[MATRIX_SIZE][MATRIX_SIZE];
+    int B[MATRIX_SIZE][MATRIX_SIZE];
+
+    // Open file
+    std::ofstream file;
+    file.open("Result_Threaded.csv");
+
+    for (int count = 2; count < MATRIX_SIZE; count = count * 2)
+    {
+	    for (int i = 0; i < count; i++)
+	    	for (int j = 0; j < count; j++)
+	    	{
+	    		A[i][j] = i;
+	    		B[i][j] = i * j;
+	    	}
+
+		// Starting time
+		auto start = std::chrono::high_resolution_clock::now();
+		
+		prodMatrix(A, B, MATRIX_SIZE, count);
+
+		// Finishing time
+		auto finish = std::chrono::high_resolution_clock::now();
+
+		std::chrono::duration<double, std::milli> total = finish - start;
+
+		// Write results to file
+		file << count << ",0," << total.count() << std::endl;
+
+		//std::cout << count << std::endl;
+	}
+
+	// Close file
+	file.close();
+
+	return 0;
+}
